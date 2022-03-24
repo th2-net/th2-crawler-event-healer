@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.exactpro.th2.dataservice.healer;
+package com.exactpro.th2.crawler.processor.healer;
 
 import com.exactpro.cradle.CradleStorage;
 import com.exactpro.cradle.testevents.StoredTestEvent;
@@ -30,9 +30,10 @@ import com.exactpro.th2.crawler.dataprocessor.grpc.DataProcessorGrpc;
 import com.exactpro.th2.crawler.dataprocessor.grpc.DataProcessorInfo;
 import com.exactpro.th2.crawler.dataprocessor.grpc.EventDataRequest;
 import com.exactpro.th2.crawler.dataprocessor.grpc.EventResponse;
+import com.exactpro.th2.crawler.processor.healer.cfg.HealerConfiguration;
+import com.exactpro.th2.crawler.processor.healer.grpc.HealerImpl;
 import com.exactpro.th2.dataprovider.grpc.EventData;
-import com.exactpro.th2.dataservice.healer.cfg.HealerConfiguration;
-import com.exactpro.th2.dataservice.healer.grpc.HealerImpl;
+
 import io.grpc.ManagedChannel;
 import io.grpc.Server;
 import io.grpc.inprocess.InProcessChannelBuilder;
@@ -47,6 +48,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.exactpro.th2.common.message.MessageUtils.toTimestamp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -62,7 +64,7 @@ public class HealerTest {
     private static final String PARENT_EVENT_ID = "parent_event_id";
     private static final String CHILD_EVENT_ID = "child_event_id";
     private static final String GRANDCHILD_EVENT_ID = "grandchild_event_id";
-    private static final HealerConfiguration CONFIGURATION = new HealerConfiguration(HEALER_NAME, HEALER_VERSION, 100);
+    private static final HealerConfiguration CONFIGURATION = new HealerConfiguration(HEALER_NAME, HEALER_VERSION, 100, 10, ChronoUnit.SECONDS, 3, ChronoUnit.SECONDS);
     private static final CrawlerId CRAWLER_ID = CrawlerId.newBuilder().setName(CRAWLER_NAME).build();
     private static final CrawlerInfo CRAWLER_INFO = CrawlerInfo.newBuilder().setId(CRAWLER_ID).build();
     private static final CradleStorage STORAGE_MOCK = mock(CradleStorage.class);
@@ -77,7 +79,7 @@ public class HealerTest {
         String serverName = InProcessServerBuilder.generateName();
 
         server = InProcessServerBuilder.forName(serverName)
-                .addService(new HealerImpl(CONFIGURATION, STORAGE_MOCK))
+                .addService( new HealerImpl(CONFIGURATION, STORAGE_MOCK))
                 .build()
                 .start();
         channel = InProcessChannelBuilder.forName(serverName)
@@ -110,9 +112,9 @@ public class HealerTest {
 
     @Test
     public void handshakeHandling() {
-        DataProcessorInfo dataServiceInfo = blockingStub.crawlerConnect(CRAWLER_INFO);
-        assertEquals(HEALER_NAME, dataServiceInfo.getName());
-        assertEquals(HEALER_VERSION, dataServiceInfo.getVersion());
+        DataProcessorInfo dataProcessorInfo = blockingStub.crawlerConnect(CRAWLER_INFO);
+        assertEquals(HEALER_NAME, dataProcessorInfo.getName());
+        assertEquals(HEALER_VERSION, dataProcessorInfo.getVersion());
     }
 
     @Test
@@ -138,35 +140,47 @@ public class HealerTest {
         EventID childId = EventID.newBuilder().setId(CHILD_EVENT_ID).build();
         EventID grandchildId = EventID.newBuilder().setId(GRANDCHILD_EVENT_ID).build();
 
-        EventData parentEvent = EventData.newBuilder()
-                .setEventId(parentId)
-                .setSuccessful(EventStatus.SUCCESS)
-                .build();
-
-        EventData childEvent = EventData.newBuilder()
-                .setEventId(childId)
-                .setParentEventId(parentId)
-                .setSuccessful(EventStatus.SUCCESS)
-                .build();
-
-        EventData grandchildEvent = EventData.newBuilder()
-                .setEventId(grandchildId)
-                .setParentEventId(childId)
-                .setSuccessful(EventStatus.FAILED)
-                .build();
-
         EventDataRequest request = EventDataRequest.newBuilder()
                 .setId(CRAWLER_INFO.getId())
-                .addEventData(parentEvent)
-                .addEventData(childEvent)
-                .addEventData(grandchildEvent)
+                .addEventData(buildEvent(parentId, null, EventStatus.SUCCESS))
+                .addEventData(buildEvent(childId, parentId, EventStatus.SUCCESS))
+                .addEventData(buildEvent(grandchildId, childId, EventStatus.FAILED))
                 .build();
 
         blockingStub.crawlerConnect(CRAWLER_INFO);
         blockingStub.sendEvent(request);
-
         verify(STORAGE_MOCK).updateEventStatus(events.get(0), false);
         verify(STORAGE_MOCK).updateEventStatus(events.get(1), false);
+    }
+
+    @Test
+    public void notHealed() {
+        EventID childId = EventID.newBuilder().setId(CHILD_EVENT_ID).build();
+        EventID childId1 = EventID.newBuilder().setId(CHILD_EVENT_ID+"_1").build();
+        EventID childId2 = EventID.newBuilder().setId(CHILD_EVENT_ID+"_2").build();
+
+        EventDataRequest request = EventDataRequest.newBuilder()
+                .setId(CRAWLER_INFO.getId())
+                .addEventData(buildEvent(childId, null, EventStatus.SUCCESS))
+                .addEventData(buildEvent(childId1, null, EventStatus.SUCCESS))
+                .addEventData(buildEvent(childId2, null, EventStatus.FAILED))
+                .build();
+
+        blockingStub.crawlerConnect(CRAWLER_INFO);
+        EventResponse response = blockingStub.sendEvent(request);
+
+        EventResponse expended = EventResponse.newBuilder().setId(childId2).build();
+        assertEquals(expended, response);
+    }
+
+    public EventData buildEvent(EventID eventID, EventID parentEventId, EventStatus status) {
+        EventData.Builder eventData = EventData.newBuilder()
+                .setStartTimestamp(toTimestamp(Instant.now()))
+                .setEndTimestamp(toTimestamp(Instant.now()))
+                .setEventId(eventID)
+                .setSuccessful(status);
+        if (parentEventId != null) eventData.setParentEventId(parentEventId);
+        return eventData.build();
     }
 
     @Test

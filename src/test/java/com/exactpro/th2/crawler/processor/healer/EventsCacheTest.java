@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package com.exactpro.th2.dataservice.healer;
+package com.exactpro.th2.crawler.processor.healer;
 
-import com.exactpro.th2.dataservice.healer.cache.EventsCache;
+import com.exactpro.th2.crawler.processor.healer.cache.EventsCache;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

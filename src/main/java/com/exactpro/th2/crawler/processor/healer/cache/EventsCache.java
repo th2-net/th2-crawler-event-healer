@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.exactpro.th2.dataservice.healer.cache;
+package com.exactpro.th2.crawler.processor.healer.cache;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

@@ -7,6 +7,7 @@ plugins {
 
 ext {
     sharedDir           = file("${project.rootDir}/shared")
+    jupiterVersion      = '5.7.0'
 }
 
 group 'com.exactpro.th2'
@@ -52,19 +53,23 @@ jar {
 }
 
 dependencies {
-    api platform('com.exactpro.th2:bom:3.0.0')
+    api platform('com.exactpro.th2:bom:3.1.0')
 
-    implementation 'com.exactpro.th2:common:3.18.2'
-    implementation "com.exactpro.th2:grpc-crawler-data-processor:0.0.1"
+    implementation 'com.exactpro.th2:common:3.32.0'
+    implementation "com.exactpro.th2:grpc-crawler-data-processor:0.2.0"
 
-    implementation "com.exactpro.th2:cradle-cassandra:2.14.0"
+    implementation "com.exactpro.th2:cradle-cassandra:2.20.2"
 
     implementation "org.slf4j:slf4j-log4j12"
     implementation "org.slf4j:slf4j-api"
     implementation 'junit:junit:4.13.1'
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
+    testImplementation "org.junit.jupiter:junit-jupiter-api:${jupiterVersion}"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${jupiterVersion}"
+
+    implementation('io.prometheus:simpleclient') {
+        because('metrics to export')
+    }
 
     testImplementation group: 'io.grpc', name: 'grpc-testing', version: '1.32.1'
 
@@ -76,7 +81,7 @@ test {
 }
 
 application {
-    mainClassName 'com.exactpro.th2.healer.BoxMain'
+    mainClassName 'com.exactpro.th2.crawler.processor.healer.BoxMain'
 }
 
 applicationName = 'service'

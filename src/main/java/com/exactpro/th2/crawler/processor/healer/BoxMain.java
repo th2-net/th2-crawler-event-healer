@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.exactpro.th2.dataservice.healer;
+package com.exactpro.th2.crawler.processor.healer;
 
 import com.exactpro.cradle.CradleStorage;
-import com.exactpro.th2.dataservice.healer.cfg.HealerConfiguration;
-import com.exactpro.th2.dataservice.healer.grpc.HealerImpl;
+import com.exactpro.th2.crawler.processor.healer.cfg.HealerConfiguration;
+import com.exactpro.th2.crawler.processor.healer.grpc.HealerImpl;
 import com.exactpro.th2.common.schema.factory.CommonFactory;
 import com.exactpro.th2.common.schema.grpc.router.GrpcRouter;
 import io.grpc.Server;

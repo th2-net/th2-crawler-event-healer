@@ -1,4 +1,4 @@
-# Healer data processor (0.0.2)
+# Healer data processor (0.1.0)
 
 Healer data processor fixes wrong status of events. When a child event has a "failed" status and its parent
 has a "success" status, the status of the parent is wrong. Healer finds the parent event and makes its status "failed", too.
