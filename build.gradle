@@ -1,12 +1,9 @@
 plugins {
     id 'com.palantir.docker' version '0.25.0'
+    id 'org.jetbrains.kotlin.jvm' version '1.6.21'
+    id 'org.jetbrains.kotlin.kapt' version "1.6.21"
     id 'java'
-    id 'java-library'
     id 'application'
-}
-
-ext {
-    sharedDir           = file("${project.rootDir}/shared")
 }
 
 group 'com.exactpro.th2'
@@ -16,10 +13,6 @@ sourceCompatibility = JavaVersion.VERSION_11
 targetCompatibility = JavaVersion.VERSION_11
 
 repositories {
-    maven {
-        name 'MavenLocal'
-        url sharedDir
-    }
     mavenLocal()
     mavenCentral()
     maven {
@@ -52,23 +45,26 @@ jar {
 }
 
 dependencies {
-    api platform('com.exactpro.th2:bom:3.0.0')
+    api platform('com.exactpro.th2:bom:4.0.2')
 
-    implementation 'com.exactpro.th2:common:3.18.2'
-    implementation "com.exactpro.th2:grpc-crawler-data-processor:0.0.1"
+    compileOnly 'com.google.auto.service:auto-service:1.0.1'
+    kapt 'com.google.auto.service:auto-service:1.0.1'
 
-    implementation "com.exactpro.th2:cradle-cassandra:2.14.0"
+    implementation 'com.github.ben-manes.caffeine:caffeine:3.1.2'
 
-    implementation "org.slf4j:slf4j-log4j12"
-    implementation "org.slf4j:slf4j-api"
-    implementation 'junit:junit:4.13.1'
+    implementation 'com.exactpro.th2:common:4.0.0-TH2-4262-reduce-load-book-and-page-3574992387-SNAPSHOT'
+    implementation "com.exactpro.th2:common-utils:0.0.1-book-and-page-3572891451-SNAPSHOT"
+    implementation "com.exactpro.th2:processor-core:0.0.1-TH2-4262-reduce-load-book-and-page-3739179455-7524a15-SNAPSHOT"
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
+    implementation "com.exactpro.th2:cradle-cassandra:4.0.0-dev-version-4-2548754188-SNAPSHOT"
 
-    testImplementation group: 'io.grpc', name: 'grpc-testing', version: '1.32.1'
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"
+    testImplementation 'org.mockito.kotlin:mockito-kotlin:4.1.0'
 
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.11.2'
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.9.0"
+    testImplementation "org.junit.jupiter:junit-jupiter-params:5.9.0"
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter:5.9.0")
+
 }
 
 test {
@@ -76,7 +72,7 @@ test {
 }
 
 application {
-    mainClassName 'com.exactpro.th2.healer.BoxMain'
+    mainClass.set('com.exactpro.th2.processor.MainKt')
 }
 
 applicationName = 'service'
